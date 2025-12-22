@@ -3,7 +3,7 @@
   
   const NINE_AM = 32400;  
   
-  function calculateLate(days) {  
+function calculateLate(days) {  
   let totalPenaltySeconds = 0;  
   days.forEach(d => {  
     const scheduledIn = d?.StartingTime?.TotalSeconds;  
@@ -14,28 +14,33 @@
   
     // Skip invalid data  
     if (!scheduledIn || !scheduledOut) return;  
-    if (!actualIn || !actualOut) return;  
-
+  
     // Skip non-working days (weekend, holiday, leave)  
-    if ([99, 8, 9, 10].includes(d.fkFlagCategoryId)) return;  
+    if ([99, 8, 9].includes(d.fkFlagCategoryId)) return;  
   
     // Skip half-day  
     if (d.fkFlagCategoryId === 3) return;  
   
-    // ✅ Late arrival  
-    if (actualIn > scheduledIn) {  
-      totalPenaltySeconds += (actualIn - scheduledIn);  
-    }   
-    // ✅ Early departure  
-    if (actualOut < scheduledOut) {  
-      totalPenaltySeconds += (scheduledOut - actualOut);  
+    // ✅ Late arrival (only if actualIn is logged)  
+    if (actualIn) {  
+      if (actualIn > scheduledIn) {  
+        totalPenaltySeconds += (actualIn - scheduledIn);  
+      }  
+    }  
+  
+    // ✅ Early departure (only if actualOut is logged)  
+    if (actualOut) {  
+      if (actualOut < scheduledOut) {  
+        totalPenaltySeconds += (scheduledOut - actualOut);  
+      }  
     }  
   });  
-  console.log(`✅ [LateCalc] total mminutes: ${totalPenaltySeconds / 60}`);
+  
+  console.log(`✅ [LateCalc] total minutes: ${totalPenaltySeconds / 60}`);  
   return {  
     penaltySeconds: totalPenaltySeconds,  
     penaltyMinutes: Math.round(totalPenaltySeconds / 60)  
-  };   
+  };  
 }     
   
   const originalOpen = XMLHttpRequest.prototype.open;  
