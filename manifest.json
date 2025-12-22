@@ -1,0 +1,22 @@
+{  
+  "manifest_version": 3,  
+  "name": "FlowHCM Late Calculator",  
+  "version": "1.0",  
+  "permissions": ["storage"],  
+  "content_scripts": [  
+    {  
+      "matches": ["*://*.flowhcm.com/*"],  
+      "js": ["content.js"],  
+      "run_at": "document_start"  
+    }  
+  ],  
+  "web_accessible_resources": [  
+    {  
+      "resources": ["injected.js"],  
+      "matches": ["*://*.flowhcm.com/*"]  
+    }  
+  ],  
+  "action": {  
+    "default_popup": "popup.html"  
+  }  
+}  
