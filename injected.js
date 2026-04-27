@@ -5,10 +5,11 @@
     let totalPenaltyMinutes = 0;
 
     const NINE_AM = 9 * 3600;
-    const TEN_FIFTY_NINE_AM = 10 * 3600 + 59 * 60 + 59; // 10:59:59
-    const ONE_THIRTY_PM = 13.5 * 3600;                 // 13:30:00
-    const THREE_PM = 15 * 3600;                        // 15:00:00
+    const ELEVEN_FIFTY_NINE_PM = 11 * 3600 + 59 * 60 + 59; // 11:59:59 AM
+    const TWELVE_PM = 12 * 3600; // 12:00 PM
+    const FOUR_PM = 16 * 3600; // 04:00 PM
     const DAY_SECONDS = 86400;
+    const FLEX_TIME_MINUTES = 8 * 60; // 8 hours = 480 minutes
 
     days.forEach(d => {
       let dayPenaltyMinutes = 0;
@@ -17,39 +18,57 @@
       const scheduledOut = d?.EndTime?.TotalSeconds;
       const actualIn = Number(d.ActualInTime);
       const actualOut = Number(d.ActualOutTime);
+      const flagName = d.FlagName || "";
+      const scheduleDate = d.ScheduleInDate || "unknown";
 
-      if (!scheduledIn || !scheduledOut) return;
+      console.log(`📅 [LateCalc] Processing: ${scheduleDate} | Flag: ${flagName} | In: ${actualIn} | Out: ${actualOut} | Scheduled: ${scheduledIn}-${scheduledOut}`);
+
+      if (!scheduledIn || !scheduledOut) {
+        console.log(`⏭️ [LateCalc] SKIP: No scheduled time for ${scheduleDate}`);
+        return;
+      }
 
       // Skip non-working / invalid days based on FlagName (more reliable than category IDs)
-      const flagName = d.FlagName?.toLowerCase() || "";
+      const flagNameLower = flagName.toLowerCase();
       const skipNames = ["off", "half day", "full day leave", "short day", "absent", "leave", "missing", "sch days", "upcoming"];
-      if (skipNames.some(name => flagName.includes(name))) return;
+      if (skipNames.some(name => flagNameLower.includes(name))) {
+        console.log(`⏭️ [LateCalc] SKIP: ${flagName} for ${scheduleDate}`);
+        return;
+      }
 
       /** ---------------- LATE ARRIVAL POLICY ---------------- */
-      // If arrives between 09:01:00 AM to 10:59:59 AM
-      if (actualIn > NINE_AM && actualIn <= TEN_FIFTY_NINE_AM) {
+      // Policy: If arrives between 09:01:00 AM to 11:59:59 AM
+      if (actualIn > NINE_AM && actualIn <= ELEVEN_FIFTY_NINE_PM) {
         const lateInMinutes = Math.floor((actualIn - NINE_AM) / 60);
         dayPenaltyMinutes += lateInMinutes;
+        console.log(`⏰ [LateCalc] LATE ARRIVAL: ${scheduleDate} - ${lateInMinutes} min (in: ${actualIn})`);
       }
 
       /** ---------------- EARLY DEPARTURE POLICY ---------------- */
-      // If leaves between 01:30:00 PM and 03:00 PM
+      // Policy: If leaves between 12:00:00 PM to 03:59:59 PM
       const validActualOut = actualOut > 0 && actualOut < DAY_SECONDS;
       
-      if (validActualOut && actualOut >= ONE_THIRTY_PM && actualOut <= THREE_PM) {
+      if (validActualOut && actualOut >= TWELVE_PM && actualOut < FOUR_PM) {
         if (actualOut < scheduledOut) {
           const earlyOutMinutes = Math.floor((scheduledOut - actualOut) / 60);
           dayPenaltyMinutes += earlyOutMinutes;
+          console.log(`🏃 [LateCalc] EARLY DEPARTURE: ${scheduleDate} - ${earlyOutMinutes} min (out: ${actualOut})`);
         }
       }
-      console.log(`✅ [LateCalc] day penalty minutes : ${dayPenaltyMinutes}`);
+      
+      console.log(`✅ [LateCalc] day penalty minutes for ${scheduleDate}: ${dayPenaltyMinutes}`);
       totalPenaltyMinutes += dayPenaltyMinutes;
     });
 
-    console.log(`✅ [LateCalc] Total penalty minutes (8hr adjustment): ${totalPenaltyMinutes}`);
+    console.log(`✅ [LateCalc] Total penalty minutes: ${totalPenaltyMinutes}`);
+    
+    const remainingMinutes = Math.max(FLEX_TIME_MINUTES - totalPenaltyMinutes, 0);
+    const overMinutes = Math.max(totalPenaltyMinutes - FLEX_TIME_MINUTES, 0);
 
     return {
-      penaltyMinutes: totalPenaltyMinutes
+      penaltyMinutes: overMinutes,
+      totalMinutes: totalPenaltyMinutes,
+      remainingFlex: remainingMinutes
     };
   }
 
@@ -66,9 +85,14 @@
     this.addEventListener("load", () => {  
       try {  
         if (this.responseText && this.responseText.includes("attendanceFlagSummaryData")) {  
+          console.log("🎯 [LateCalc] XHR response captured!");
           const json = JSON.parse(this.responseText);  
           const days = json?.attendanceFlagSummaryData?.[0];  
-          if (!Array.isArray(days)) return;  
+          if (!Array.isArray(days)) {
+            console.log("❌ [LateCalc] days is not an array:", days);
+            return;
+          }
+          console.log(`📊 [LateCalc] Total days received: ${days.length}`);  
   
           const result = calculateLate(days);   
           window.postMessage({ type: "LATECALC_RESULT", result }, "*");  

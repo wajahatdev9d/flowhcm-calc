@@ -7,24 +7,24 @@ function formatHourMin(totalMinutes) {
 document.addEventListener("DOMContentLoaded", () => {  
     const MONTHLY_LIMIT_MIN = 8 * 60; // 8 hours  
   
-    chrome.storage.local.get(["lateCalcResult"], data => {   
+chrome.storage.local.get(["lateCalcResult"], data => {   
         const lateMinutes = Number(data.lateCalcResult?.penaltyMinutes || 0);  
+        const totalMinutes = Number(data.lateCalcResult?.totalMinutes || 0);
+        const remainingFlex = Number(data.lateCalcResult?.remainingFlex || 0);
         
-        if (!lateMinutes) {  
+        if (!totalMinutes) {  
             document.getElementById("status").textContent = "No data yet";  
             return;  
         }  
-  
-        const remainingMinutes = Math.max(MONTHLY_LIMIT_MIN - lateMinutes, 0);  
-  
+   
         document.getElementById("status").textContent = "Late Summary";  
         document.getElementById("late-min").textContent =  
-            lateMinutes.toFixed(2) + " min";  
+            totalMinutes.toFixed(2) + " min";  
         document.getElementById("late-hr").textContent =  
-            formatHourMin(lateMinutes) + " hr";  
+            formatHourMin(totalMinutes) + " hr";  
         document.getElementById("rem-min").textContent =  
-            remainingMinutes.toFixed(2) + " min";  
+            remainingFlex.toFixed(2) + " min";  
         document.getElementById("rem-hr").textContent =  
-            formatHourMin(remainingMinutes) + " hr";  
-    });  
+            formatHourMin(remainingFlex) + " hr";  
+    });
 });  
