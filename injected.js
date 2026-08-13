@@ -29,17 +29,26 @@
         return;
       }
 
-      // Skip non-working / invalid days based on FlagName (more reliable than category IDs)
       const flagNameLower = flagName.toLowerCase();
+
+      // Half-day leave: HR confirmed late minutes are STILL counted for the worked half.
+      // Early departure is skipped because the other half of the day is off.
+      // Detect before the skip check so "H/D Leave", "Half Day Leave", etc. aren't skipped.
+      const isHalfDay =
+        flagNameLower.includes("half day") ||
+        flagNameLower.includes("h/d") ||
+        flagNameLower.includes("hd leave") ||
+        flagNameLower.includes("hdleave");
+
+      // Skip non-working / invalid days based on FlagName (more reliable than category IDs)
       const skipNames = ["off", "full day leave", "short day", "absent", "leave", "missing", "sch days", "upcoming"];
-      if (skipNames.some(name => flagNameLower.includes(name))) {
+      // "leave" in skipNames also matches half-day leave flags, so exclude half-day days.
+      const isSkippable = skipNames.some(name => flagNameLower.includes(name)) && !isHalfDay;
+      if (isSkippable) {
         console.log(`⏭️ [LateCalc] SKIP: ${flagName} for ${scheduleDate}`);
         return;
       }
 
-      // Half-day leave: HR confirmed late minutes are STILL counted for the worked half.
-      // Early departure is skipped because the other half of the day is off.
-      const isHalfDay = flagNameLower.includes("half day");
       if (isHalfDay) {
         console.log(`⏳ [LateCalc] HALF DAY: ${flagName} for ${scheduleDate} - late minutes still counted, early departure skipped`);
       }
