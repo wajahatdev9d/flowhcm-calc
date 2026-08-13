@@ -8,6 +8,7 @@
     const ELEVEN_FIFTY_NINE_PM = 11 * 3600 + 59 * 60 + 59; // 11:59:59 AM
     const TWELVE_PM = 12 * 3600; // 12:00 PM
     const FOUR_PM = 16 * 3600; // 04:00 PM
+    const SIX_PM = 18 * 3600; // 06:00 PM
     const DAY_SECONDS = 86400;
     const FLEX_TIME_MINUTES = 8 * 60; // 8 hours = 480 minutes
 
@@ -45,10 +46,10 @@
       }
 
       /** ---------------- EARLY DEPARTURE POLICY ---------------- */
-      // Policy: If leaves between 12:00:00 PM to 03:59:59 PM
+      // Policy: If leaves between 12:00:00 PM to 05:59:59 PM
       const validActualOut = actualOut > 0 && actualOut < DAY_SECONDS;
       
-      if (validActualOut && actualOut >= TWELVE_PM && actualOut < FOUR_PM) {
+      if (validActualOut && actualOut >= TWELVE_PM && actualOut < SIX_PM) {
         if (actualOut < scheduledOut) {
           const earlyOutMinutes = Math.floor((scheduledOut - actualOut) / 60);
           dayPenaltyMinutes += earlyOutMinutes;
