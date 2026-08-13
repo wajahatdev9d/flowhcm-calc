@@ -31,10 +31,17 @@
 
       // Skip non-working / invalid days based on FlagName (more reliable than category IDs)
       const flagNameLower = flagName.toLowerCase();
-      const skipNames = ["off", "half day", "full day leave", "short day", "absent", "leave", "missing", "sch days", "upcoming"];
+      const skipNames = ["off", "full day leave", "short day", "absent", "leave", "missing", "sch days", "upcoming"];
       if (skipNames.some(name => flagNameLower.includes(name))) {
         console.log(`⏭️ [LateCalc] SKIP: ${flagName} for ${scheduleDate}`);
         return;
+      }
+
+      // Half-day leave: HR confirmed late minutes are STILL counted for the worked half.
+      // Early departure is skipped because the other half of the day is off.
+      const isHalfDay = flagNameLower.includes("half day");
+      if (isHalfDay) {
+        console.log(`⏳ [LateCalc] HALF DAY: ${flagName} for ${scheduleDate} - late minutes still counted, early departure skipped`);
       }
 
       /** ---------------- LATE ARRIVAL POLICY ---------------- */
@@ -47,13 +54,16 @@
 
       /** ---------------- EARLY DEPARTURE POLICY ---------------- */
       // Policy: If leaves between 12:00:00 PM to 05:59:59 PM
-      const validActualOut = actualOut > 0 && actualOut < DAY_SECONDS;
-      
-      if (validActualOut && actualOut >= TWELVE_PM && actualOut < SIX_PM) {
-        if (actualOut < scheduledOut) {
-          const earlyOutMinutes = Math.floor((scheduledOut - actualOut) / 60);
-          dayPenaltyMinutes += earlyOutMinutes;
-          console.log(`🏃 [LateCalc] EARLY DEPARTURE: ${scheduleDate} - ${earlyOutMinutes} min (out: ${actualOut})`);
+      // Skipped on half-day days (the early departure half is off, so no penalty)
+      if (!isHalfDay) {
+        const validActualOut = actualOut > 0 && actualOut < DAY_SECONDS;
+        
+        if (validActualOut && actualOut >= TWELVE_PM && actualOut < SIX_PM) {
+          if (actualOut < scheduledOut) {
+            const earlyOutMinutes = Math.floor((scheduledOut - actualOut) / 60);
+            dayPenaltyMinutes += earlyOutMinutes;
+            console.log(`🏃 [LateCalc] EARLY DEPARTURE: ${scheduleDate} - ${earlyOutMinutes} min (out: ${actualOut})`);
+          }
         }
       }
       
