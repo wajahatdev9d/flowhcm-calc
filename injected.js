@@ -50,12 +50,23 @@
       }
 
       if (isHalfDay) {
-        console.log(`⏳ [LateCalc] HALF DAY: ${flagName} for ${scheduleDate} - late minutes still counted, early departure skipped`);
+        console.log(`⏳ [LateCalc] HALF DAY: ${flagName} for ${scheduleDate} - late arrival skipped if morning off, early departure skipped`);
       }
+
+      // Half-day leave: figure out which half was actually off from the punches.
+      // If they checked in at/after ~11:45 AM, the first (morning) half was off,
+      // so the late-arrival penalty must NOT be counted for that day.
+      const firstHalfOff =
+        isHalfDay && actualIn > 0 && actualIn >= TWELVE_PM - 15 * 60;
 
       /** ---------------- LATE ARRIVAL POLICY ---------------- */
       // Policy: If arrives between 09:01:00 AM to 11:59:59 AM
-      if (actualIn > NINE_AM && actualIn <= ELEVEN_FIFTY_NINE_PM) {
+      // Skipped when the first half is off (H/D leave covering the morning).
+      if (
+        !firstHalfOff &&
+        actualIn > NINE_AM &&
+        actualIn <= ELEVEN_FIFTY_NINE_PM
+      ) {
         const lateInMinutes = Math.floor((actualIn - NINE_AM) / 60);
         dayPenaltyMinutes += lateInMinutes;
         console.log(`⏰ [LateCalc] LATE ARRIVAL: ${scheduleDate} - ${lateInMinutes} min (in: ${actualIn})`);
